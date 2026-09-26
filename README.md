@@ -36,7 +36,7 @@ S=~/.claude/skills/whiteboard-video/scripts
 $S/new_project.sh my-video              # or: --vertical for 1080x1920
 # edit my-video/script.json (what is said) and my-video/scenes.js (what is drawn)
 python3 $S/make_audio.py my-video       # voice-over + exact timing of every line
-node $S/render.js my-video preview      # one PNG per scene in my-video/previews/
+node $S/render.js my-video sheet        # one PNG per scene + previews/sheet.png with all of them
 node $S/render.js my-video full         # my-video/out/my-video.mp4
 ```
 

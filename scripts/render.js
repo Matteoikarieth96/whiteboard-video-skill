@@ -4,6 +4,7 @@
 
   node render.js <project> check              build the scenes and print timing/layout warnings only
   node render.js <project> preview [t ...]    PNG stills into <project>/previews/ (no times = the last moment of every scene)
+  node render.js <project> sheet              same default stills, plus one contact sheet <project>/previews/sheet.png to review every scene at once
   node render.js <project> full               every frame, then mux with narration.wav into <project>/out/<name>.mp4
 
   Needs: timeline.json + narration.wav (from make_audio.py), scenes.js, optional config.json.
@@ -50,9 +51,10 @@ function findChrome() {
   console.log(`${info.items} drawing items, ${tl.scenes.length} scenes, ${tl.total.toFixed(2)}s`);
   info.warn.forEach(w => console.log("WARN", w));
 
-  if (mode === "preview") {
+  if (mode === "preview" || mode === "sheet") {
     const dir = path.join(project, "previews");
     fs.mkdirSync(dir, { recursive: true });
+    const shots = [];
     let times = rest.map(Number).filter(n => !isNaN(n));
     if (!times.length) times = tl.scenes.map((s, i) => i < tl.scenes.length - 1 ? s.end - cfg.pan - 0.05 : s.end - 0.1);
     for (const t of times) {
@@ -61,6 +63,17 @@ function findChrome() {
       const file = path.join(dir, `${t.toFixed(2).padStart(7, "0")}${scene ? "_" + scene.id : ""}.png`);
       await page.screenshot({ path: file });
       console.log("preview", file);
+      shots.push(file);
+    }
+    if (mode === "sheet" && shots.length > 1) {
+      const w = Math.round(cfg.width / 2), h = Math.round(cfg.height / 2), cols = cfg.width >= cfg.height ? 2 : 3;
+      const inputs = shots.flatMap(f => ["-i", f]);
+      const scaled = shots.map((_, i) => `[${i}:v]scale=${w}:${h}[s${i}];`).join("");
+      const pos = shots.map((_, i) => `${(i % cols) * w}_${Math.floor(i / cols) * h}`).join("|");
+      const sheet = path.join(dir, "sheet.png");
+      execFileSync("ffmpeg", ["-y", "-loglevel", "error", ...inputs, "-filter_complex",
+        `${scaled}${shots.map((_, i) => `[s${i}]`).join("")}xstack=inputs=${shots.length}:layout=${pos}:fill=white[out]`, "-map", "[out]", sheet]);
+      console.log("sheet", sheet);
     }
   } else if (mode === "full") {
     const frames = path.join(os.tmpdir(), `wbv-frames-${cfg.name}-${process.pid}`);

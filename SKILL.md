@@ -86,10 +86,11 @@ This writes `narration.wav` and `timeline.json` with the exact start and end of 
 ```bash
 node scripts/render.js <project> check      # timing and layout warnings only
 node scripts/render.js <project> preview    # one PNG at the end of every scene, in <project>/previews/
+node scripts/render.js <project> sheet      # the same PNGs plus previews/sheet.png: every scene on one image
 node scripts/render.js <project> full       # all frames + audio -> <project>/out/<name>.mp4
 ```
 
-Look at every preview image before the full render. Check that nothing overlaps, nothing touches the edges or the caption strip, text fits inside its shapes, and each scene reads at a glance. Fix every `WARN` line: an item that ends after the scene cut will be chopped by the slide transition, and text that "runs off the board" is clipped.
+Look at `previews/sheet.png` (or every preview image) before the full render. Check that nothing overlaps, nothing touches the edges or the caption strip, text fits inside its shapes, and each scene reads at a glance. Fix every `WARN` line: an item that ends after the scene cut will be chopped by the slide transition, and text that "runs off the board" is clipped.
 
 After the full render, check the duration with ffprobe and grab one or two frames from the MP4 to confirm audio and drawings are in sync.
 
