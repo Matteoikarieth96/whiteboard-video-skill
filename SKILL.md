@@ -37,6 +37,8 @@ Read `references/interview.md` for the full question list. First harvest everyth
 - facts, numbers, sources or documents that must be used; claims to avoid
 - tone, brand colors, captions on or off, call to action at the end
 
+Once the project folder exists (Step 4 creates it), write the answers and any assumptions into `<project>/brief.md`. The script is regenerated fresh every time the skill runs, so the brief plus the project files are what make a video reproducible by someone else.
+
 If the topic involves facts that change (markets, laws, products, prices), research before writing. Check every number and named claim in two independent sources, prefer primary sources, and note the date. Subagents are a good fit for parallel research.
 
 ## Step 2: write the script and get it approved
@@ -102,5 +104,6 @@ Send the MP4. Tell the user its length, the voice used, and anything you assumed
 
 - `examples/how-it-works/`: 33 s, six scenes, explains this skill. Good template for short social videos.
 - `examples/rwa-on-ethereum/`: about 2 minutes, nine scenes with charts, columns, icons and a custom logo helper. Good reference for dense, fact-heavy explainers.
+- `examples/sec-innovation-exemption/`: 1:53 news explainer. Its README records the brief given at the interview step and the sources, which is the pattern to follow when a video must be reproducible by others.
 
 Render either one with `python3 scripts/make_audio.py examples/<name>` then `node scripts/render.js examples/<name> full`. Both use a macOS voice; change `voice.json` on other systems.

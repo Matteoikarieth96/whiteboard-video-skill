@@ -7,7 +7,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TPL="$HERE/../assets/template"
 if [[ -e "$DIR/script.json" ]]; then echo "$DIR already has a script.json, not overwriting" >&2; exit 1; fi
 mkdir -p "$DIR"
-cp "$TPL/config.json" "$TPL/script.json" "$TPL/voice.json" "$TPL/scenes.js" "$DIR/"
+cp "$TPL/config.json" "$TPL/script.json" "$TPL/voice.json" "$TPL/scenes.js" "$TPL/brief.md" "$DIR/"
 cp "$TPL/gitignore.txt" "$DIR/.gitignore"
 NAME="$(basename "$DIR")"
 python3 - "$DIR/config.json" "$NAME" "${2:-}" <<'PY'

@@ -56,6 +56,17 @@ python3 $S/make_audio.py my-video --samples "A sentence from your script." \
   --voices "say:Ava (Premium):185" "say:Samantha:190"
 ```
 
+## Share it
+
+Social platforms take the MP4 directly. For a GIF (the one at the top of this page was made this way):
+
+```bash
+ffmpeg -i my-video/out/my-video.mp4 -t 34 \
+  -vf "fps=12,scale=800:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=64[p];[b][p]paletteuse=dither=bayer" my-video.gif
+```
+
+`docs/demo.mp4` is `examples/how-it-works` rendered with `render.js full`.
+
 ## How it works
 
 - `script.json` lists scenes and spoken lines. Each line becomes one caption.
@@ -69,6 +80,7 @@ See `references/drawing-api.md` for the full drawing API and `examples/` for two
 
 - `examples/how-it-works`: the 33-second demo above.
 - `examples/rwa-on-ethereum`: a 2-minute explainer on tokenized stocks and bonds, with charts, three-column comparisons and a custom logo.
+- `examples/sec-innovation-exemption`: a 1:53 news explainer on the SEC Innovation Exemption, with the brief given to the skill and the sources behind every claim.
 
 ## License
 

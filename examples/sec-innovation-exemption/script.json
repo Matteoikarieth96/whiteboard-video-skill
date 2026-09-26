@@ -1,0 +1,35 @@
+[
+  {"id": "intro", "lines": [
+    {"t": "On September 17, the SEC opened a new door for tokenized stocks.", "say": "On September seventeenth, the S.E.C. opened a new door for tokenized stocks."},
+    {"t": "Here's what it allows, and who wins."}]},
+  {"id": "what", "lines": [
+    {"t": "The Innovation Exemption lets a new kind of venue trade tokenized US stocks through AMM liquidity pools,", "say": "The Innovation Exemption lets a new kind of venue trade tokenized U.S. stocks through A.M.M. liquidity pools,"},
+    {"t": "without registering as an exchange."},
+    {"t": "It lasts five years, until 2031."}]},
+  {"id": "rules", "lines": [
+    {"t": "The rules are strict."},
+    {"t": "Tokens must carry the same rights as the real share, like dividends and votes. Synthetic tokens are out."},
+    {"t": "Companies can block third-party tokens of their own stock."},
+    {"t": "Volumes are capped, trading halts when the exchange halts, and there's no margin."},
+    {"t": "And ordinary US investors can take part, through verified wallets.", "say": "And ordinary U.S. investors can take part, through verified wallets."}]},
+  {"id": "chains", "lines": [
+    {"t": "Which blockchains?"},
+    {"t": "The venue's code must run on a public chain that anyone can read and write to, without permission."},
+    {"t": "Ethereum and Solana clearly fit."},
+    {"t": "Layer twos aren't mentioned, so each venue will have to make its case."}]},
+  {"id": "permissioned", "lines": [
+    {"t": "Permissioned chains are the grey zone."},
+    {"t": "Tempo lets anyone deploy contracts, but its validators are hand-picked, so it may need a nod from SEC staff.", "say": "Tempo lets anyone deploy contracts, but its validators are hand-picked, so it may need a nod from S.E.C. staff."},
+    {"t": "Fully private bank ledgers don't qualify."}]},
+  {"id": "uniswap", "lines": [
+    {"t": "In DeFi, the big winner is the AMM.", "say": "In dee-fi, the big winner is the A.M.M."},
+    {"t": "Uniswap v4's permissioned pools already check an allowlist before every trade, the model the SEC describes.", "say": "Uniswap v four's permissioned pools already check an allow-list before every trade, the model the S.E.C. describes."},
+    {"t": "UNI jumped about 30%. But a regulated US company still has to run the venue.", "say": "Uni jumped about thirty percent. But a regulated U.S. company still has to run the venue."}]},
+  {"id": "aave", "lines": [
+    {"t": "Lending is a different story."},
+    {"t": "The exemption bans venues from lending or extending credit, so it doesn't cover protocols like Aave."},
+    {"t": "Aave v4 just opened an Equities Hub on Base, where tokenized stocks back USDC loans, but only for non-US users.", "say": "Aave v four just opened an Equities Hub on Base, where tokenized stocks back U.S.D.C. loans, but only for non-U.S. users."}]},
+  {"id": "outro", "lines": [
+    {"t": "Open chains. Real shareholder rights. Permissioned access.", "say": "Open chains. [[slnc 200]] Real shareholder rights. [[slnc 200]] Permissioned access."},
+    {"t": "That's the deal the SEC just offered, for the next five years.", "say": "That's the deal the S.E.C. just offered, for the next five years."}]}
+]
