@@ -1,0 +1,258 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!--
+  Whiteboard video engine.
+  Loaded by render.js in headless Chrome. The project's scenes.js is injected after load,
+  then window.init(timeline, config) builds every scene and window.renderAt(t) draws frame t.
+  Everything is deterministic: the same t always produces the same frame.
+-->
+<style>
+@font-face{font-family:'Caveat';src:url('../assets/fonts/Caveat.ttf');font-weight:400 700;}
+html,body{margin:0;padding:0;overflow:hidden;}
+svg{position:absolute;left:0;top:0;}
+#capwrap{position:absolute;left:0;right:0;text-align:center;}
+#cap{display:none;max-width:1820px;box-sizing:border-box;
+  font:500 34px/1.25 "Helvetica Neue",Helvetica,Arial,sans-serif;color:#23262b;text-align:center;
+  background:rgba(255,255,255,.92);border:2px solid #e6e4dc;border-radius:14px;padding:10px 24px;
+  box-shadow:0 4px 18px rgba(0,0,0,.06);}
+</style></head>
+<body>
+<svg id="board" xmlns="http://www.w3.org/2000/svg">
+  <defs id="defs">
+    <radialGradient id="bg" cx="50%" cy="45%" r="75%">
+      <stop offset="0" id="bg0"/><stop offset="1" id="bg1"/>
+    </radialGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="10" dy="14" stdDeviation="8" flood-color="#000" flood-opacity=".18"/>
+    </filter>
+  </defs>
+  <rect id="bgrect" fill="url(#bg)"/>
+  <rect id="frame" x="18" y="18" rx="18" fill="none" stroke="#dedcd3" stroke-width="3"/>
+  <g id="scenes"></g>
+  <g id="pen" filter="url(#shadow)">
+    <g transform="rotate(-35)">
+      <polygon points="0,0 -9,30 9,30" fill="#2b2d31"/>
+      <rect x="-15" y="28" width="30" height="36" rx="4" id="penCap" fill="#1f2328"/>
+      <rect x="-17" y="62" width="34" height="210" rx="10" fill="#f4f4f2" stroke="#c9c7bf" stroke-width="3"/>
+      <rect x="-17" y="118" width="34" height="70" fill="#1f2328" id="penBand"/>
+      <rect x="-9" y="70" width="6" height="190" rx="3" fill="#ffffff" opacity=".7"/>
+    </g>
+  </g>
+</svg>
+<div id="capwrap"><div id="cap"></div></div>
+<script>
+// ---------- globals (palette can be overridden by config.palette) ----------
+const NS = 'http://www.w3.org/2000/svg';
+var W = 1920, H = 1080, PAN = 0.45;
+var INK = '#1f2328', BLUE = '#5b6fe0', GOLD = '#e0a106', RED = '#d6453b', GREEN = '#2f9a58', GRAY = '#6b7079';
+var FONT = 'Caveat';
+let REST = [2080, 1320];
+let TL, CFG, items = [], scenes = [], defs, cur = null;
+let seed = 11;
+const rnd = () => (seed = (seed * 16807) % 2147483647, (seed - 1) / 2147483646);
+const jit = a => (rnd() * 2 - 1) * a;
+const clamp = x => Math.max(0, Math.min(1, x));
+const ease = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+const f = n => n.toFixed(1);
+
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+// ---------- hand-drawn path builders (all return SVG path "d" strings) ----------
+function seg(x1, y1, x2, y2, j = 3) {
+  const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1;
+  const k = jit(j) * (L > 160 ? 1.6 : 1);
+  return `Q ${f((x1 + x2) / 2 - dy / L * k)} ${f((y1 + y2) / 2 + dx / L * k)} ${f(x2)} ${f(y2)} `;
+}
+const line = (x1, y1, x2, y2, j = 3) => `M ${f(x1)} ${f(y1)} ` + seg(x1, y1, x2, y2, j);
+function poly(pts, close = false, j = 3) {
+  let d = `M ${f(pts[0][0])} ${f(pts[0][1])} `;
+  for (let i = 1; i < pts.length; i++) d += seg(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], j);
+  if (close) {
+    const a = pts[pts.length - 1], b = pts[0], c = pts[1];
+    d += seg(a[0], a[1], b[0], b[1], j);
+    d += seg(b[0], b[1], b[0] + (c[0] - b[0]) * .07, b[1] + (c[1] - b[1]) * .07, 1);
+  }
+  return d;
+}
+const rect = (x, y, w, h, j = 3) => poly([[x, y], [x + w, y], [x + w, y + h], [x, y + h]], true, j);
+function circ(cx, cy, rx, ry = rx, a0 = -100, sweep = 372, wob = .018) {
+  let d = ''; const n = 80, ph = rnd() * 6;
+  for (let i = 0; i <= n; i++) {
+    const a = (a0 + sweep * i / n) * Math.PI / 180, k = 1 + wob * Math.sin(i * .3 + ph);
+    d += (i ? 'L' : 'M') + ` ${f(cx + rx * k * Math.cos(a))} ${f(cy + ry * k * Math.sin(a))} `;
+  }
+  return d;
+}
+function arc(cx, cy, r, a0, a1, move = true) {
+  let d = ''; const n = Math.max(10, Math.round(Math.abs(a1 - a0) / 4));
+  for (let i = 0; i <= n; i++) {
+    const a = (a0 + (a1 - a0) * i / n) * Math.PI / 180;
+    d += (i || !move ? 'L' : 'M') + ` ${f(cx + r * Math.cos(a))} ${f(cy + r * Math.sin(a))} `;
+  }
+  return d;
+}
+function head(x1, y1, x2, y2, s = 28) {
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  return `M ${f(x2 - s * Math.cos(a - .45))} ${f(y2 - s * Math.sin(a - .45))} L ${f(x2)} ${f(y2)} L ${f(x2 - s * Math.cos(a + .45))} ${f(y2 - s * Math.sin(a + .45))} `;
+}
+const arrow = (x1, y1, x2, y2, j = 4) => line(x1, y1, x2, y2, j) + head(x1, y1, x2, y2);
+function wave(x1, x2, y, amp = 8, per = 90) {
+  let d = ''; const n = 60;
+  for (let i = 0; i <= n; i++) { const x = x1 + (x2 - x1) * i / n; d += (i ? 'L' : 'M') + ` ${f(x)} ${f(y + amp * Math.sin((x - x1) / per * 2 * Math.PI))} `; }
+  return d;
+}
+
+// ---------- ready-made icons (path strings) ----------
+const icon = {
+  tick: (x, y, r = 42) => circ(x, y, r) + poly([[x - r * .48, y + 2], [x - r * .12, y + r * .43], [x + r * .52, y - r * .38]], false, 1),
+  cross: (x, y, r = 42) => circ(x, y, r) + line(x - r * .38, y - r * .38, x + r * .38, y + r * .38, 1) + line(x + r * .38, y - r * .38, x - r * .38, y + r * .38, 1),
+  coin: (x, y, r = 50) => circ(x, y, r) + circ(x, y, r * .64, r * .64, -90, 365, .01),
+  clock: (x, y, r = 100) => circ(x, y, r) + line(x, y, x, y - r * .7, 1) + line(x, y, x + r * .58, y + r * .32, 1),
+  bubble: (x, y, w = 110, h = 70) => rect(x - w / 2, y - h / 2, w, h, 2) + poly([[x - w / 2 + 18, y + h / 2], [x - w / 2 + 10, y + h / 2 + 28], [x - w / 2 + 42, y + h / 2]], false, 1),
+  person: (x, y, s = 1) => circ(x, y - 70 * s, 32 * s) + line(x, y - 38 * s, x, y + 50 * s, 1) + line(x - 55 * s, y - 5 * s, x + 55 * s, y - 5 * s, 1) +
+    line(x, y + 50 * s, x - 40 * s, y + 120 * s, 1) + line(x, y + 50 * s, x + 40 * s, y + 120 * s, 1),
+  building: (x, y, w = 380) => {
+    let cols = ''; const n = 5;
+    for (let i = 0; i < n; i++) { const cx = x - w * .38 + i * w * .76 / (n - 1); cols += line(cx, y - 125, cx, y + 55, 1); }
+    return poly([[x - w / 2 + 10, y - 140], [x, y - 230], [x + w / 2 - 10, y - 140]], true, 1.5) + cols + rect(x - w / 2, y + 58, w, 40, 1.5);
+  },
+  bars: (x, y, vals, bw = 70, gap = 30, hmax = 300) => {
+    const m = Math.max(...vals); let d = poly([[x, y - hmax - 30], [x, y], [x + vals.length * (bw + gap) + gap, y]], false, 1);
+    vals.forEach((v, i) => { const h = v / m * hmax; d += rect(x + gap + i * (bw + gap), y - h, bw, h, 1.5); });
+    return d;
+  },
+};
+
+// ---------- timeline items ----------
+// P(d, at, dur, {c, w, fill, fillOp})  draws a path progressively from `at` for `dur` seconds.
+// T(text, x, y, size, at, dur, {c, anchor, weight, font}) writes text left-to-right. Returns its bbox.
+function P(d, at, dur, o = {}) {
+  const p = el('path', { d, fill: o.fill || 'none', 'fill-opacity': 0, stroke: o.c || INK, 'stroke-width': o.w || 7,
+    'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, cur.g);
+  const len = p.getTotalLength();
+  p.style.strokeDasharray = `${len} ${len + 20}`;
+  items.push({ type: 'path', el: p, len, at, dur, color: o.c || INK, fillOp: o.fillOp ?? .3, hasFill: !!o.fill, scene: cur });
+  return p;
+}
+function T(s, x, y, size, at, dur, o = {}) {
+  const t = el('text', { x, y, 'font-family': o.font || FONT, 'font-size': size, 'font-weight': o.weight || 700,
+    fill: o.c || INK, 'text-anchor': o.anchor || 'middle' }, cur.g);
+  t.textContent = s;
+  const b = t.getBBox(), id = 'c' + items.length;
+  const r = el('rect', { x: b.x - 12, y: b.y - 30, width: 0, height: b.height + 60 }, el('clipPath', { id }, defs));
+  t.setAttribute('clip-path', `url(#${id})`);
+  items.push({ type: 'text', el: t, rect: r, b, at, dur, color: o.c || INK, scene: cur, overflow: b.x < 30 || b.x + b.width > W - 30 });
+  return b;
+}
+
+window.init = async function (tl, cfg) {
+  TL = tl; CFG = cfg || {};
+  W = CFG.width || 1920; H = CFG.height || 1080; PAN = CFG.pan ?? .45;
+  const pal = CFG.palette || {};
+  if (pal.ink) INK = pal.ink; if (pal.blue) BLUE = pal.blue; if (pal.gold) GOLD = pal.gold;
+  if (pal.red) RED = pal.red; if (pal.green) GREEN = pal.green; if (pal.gray) GRAY = pal.gray;
+  if (CFG.font) FONT = CFG.font;
+  REST = [W + 160, H + 240];
+  document.body.style.width = W + 'px'; document.body.style.height = H + 'px';
+  document.body.style.background = pal.paper || '#fbfbf8';
+  const svg = document.getElementById('board');
+  svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  document.getElementById('bg0').setAttribute('stop-color', pal.paperCenter || '#ffffff');
+  document.getElementById('bg1').setAttribute('stop-color', pal.paperEdge || '#f1f0ea');
+  const bg = document.getElementById('bgrect'); bg.setAttribute('width', W); bg.setAttribute('height', H);
+  const fr = document.getElementById('frame'); fr.setAttribute('width', W - 36); fr.setAttribute('height', H - 36);
+  const cap = document.getElementById('cap');
+  document.getElementById('capwrap').style.bottom = (CFG.captionBottom ?? 34) + 'px';
+  cap.style.maxWidth = (W - 100) + 'px';
+  if (CFG.captionSize) cap.style.fontSize = CFG.captionSize + 'px';
+
+  await document.fonts.load(`700 80px ${FONT}`);
+  await document.fonts.load(`600 80px ${FONT}`);
+  defs = document.getElementById('defs');
+  const root = document.getElementById('scenes');
+  const warn = [];
+  if (!window.SCENES) throw new Error('scenes.js did not define window.SCENES');
+  TL.scenes.forEach((s, i) => {
+    if (!window.SCENES[s.id]) { warn.push(`missing scene builder for "${s.id}"`); return; }
+    cur = { ...s, i, g: el('g', {}, root) };
+    scenes.push(cur);
+    // A(line, fraction) = absolute time at that fraction of that spoken line
+    const A = (li, fr) => {
+      const l = s.lines[Math.min(li, s.lines.length - 1)];
+      return l.start + fr * (l.end - l.start);
+    };
+    const n0 = items.length;
+    window.SCENES[s.id](A, { W, H, scene: s });
+    for (const it of items.slice(n0)) {
+      const lim = i < TL.scenes.length - 1 ? s.end - PAN : s.end;
+      if (it.at + it.dur > lim + 1e-3) warn.push(`${s.id}: item ends ${(it.at + it.dur).toFixed(2)}s, after the scene cut ${lim.toFixed(2)}s`);
+      if (it.at < s.start) warn.push(`${s.id}: item starts ${it.at.toFixed(2)}s, before the scene ${s.start.toFixed(2)}s`);
+      if (it.overflow) warn.push(`${s.id}: text "${it.el.textContent}" runs off the board`);
+    }
+  });
+  items.sort((a, b) => a.at - b.at);
+  return { total: TL.total, items: items.length, warn };
+};
+
+function sceneTx(s, t) {
+  const last = s.i === scenes.length - 1;
+  if (s.i > 0 && t < s.start) return t < s.start - PAN ? W : W * (1 - ease(clamp((t - (s.start - PAN)) / PAN)));
+  if (!last && t > s.end - PAN) return -W * ease(clamp((t - (s.end - PAN)) / PAN));
+  return 0;
+}
+function pt(it, p, t) {
+  const tx = sceneTx(it.scene, t);
+  if (it.type === 'path') { const q = it.el.getPointAtLength(it.len * p); return [q.x + tx, q.y]; }
+  const b = it.b;
+  return [b.x + b.width * p + tx, b.y + b.height * .66 + Math.sin(p * b.width / 10) * b.height * .15];
+}
+const lerp = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+
+window.renderAt = function (t) {
+  for (const s of scenes) {
+    const tx = sceneTx(s, t);
+    s.g.setAttribute('transform', `translate(${tx.toFixed(1)},0)`);
+    s.g.style.display = Math.abs(tx) >= W ? 'none' : '';
+  }
+  let active = null, prev = null, next = null;
+  for (const it of items) {
+    const p = clamp((t - it.at) / it.dur);
+    if (it.type === 'path') {
+      it.el.style.strokeDashoffset = it.len * (1 - p);
+      it.el.style.visibility = p > 0 ? 'visible' : 'hidden';
+      if (it.hasFill) it.el.setAttribute('fill-opacity', (it.fillOp * clamp((t - it.at - it.dur) / .35)).toFixed(3));
+    } else {
+      it.rect.setAttribute('width', (p * (it.b.width + 24)).toFixed(1));
+    }
+    if (t >= it.at && t < it.at + it.dur) active = it;
+    else if (it.at + it.dur <= t) { if (!prev || it.at + it.dur > prev.at + prev.dur) prev = it; }
+    else if (it.at > t && !next) next = it;
+  }
+  let pos, color = INK;
+  if (active) { pos = pt(active, clamp((t - active.at) / active.dur), t); color = active.color; }
+  else {
+    const pe = prev ? prev.at + prev.dur : -9, pp = prev ? pt(prev, 1, t) : REST;
+    const np = next ? pt(next, 0, t) : REST, gap = next ? next.at - pe : 99;
+    if (prev && next && gap < .9 && prev.scene === next.scene) { pos = lerp(pp, np, ease(clamp((t - pe) / gap))); color = next.color; }
+    else if (t - pe < .35) pos = lerp(pp, REST, ease(clamp((t - pe) / .35)));
+    else if (next && next.at - t < .35) { pos = lerp(REST, np, ease(clamp(1 - (next.at - t) / .35))); color = next.color; }
+    else pos = REST;
+  }
+  const pen = document.getElementById('pen');
+  pen.style.display = CFG.pen === false ? 'none' : '';
+  pen.setAttribute('transform', `translate(${pos[0].toFixed(1)},${pos[1].toFixed(1)})`);
+  document.getElementById('penCap').setAttribute('fill', color);
+  document.getElementById('penBand').setAttribute('fill', color);
+  const cap = document.getElementById('cap');
+  let txt = '';
+  if (CFG.captions !== false) for (const s of TL.scenes) for (const l of s.lines) if (t >= l.start - .05 && t <= l.end + .25) txt = l.text;
+  cap.style.display = txt ? 'inline-block' : 'none';
+  cap.textContent = txt;
+};
+</script>
+</body></html>

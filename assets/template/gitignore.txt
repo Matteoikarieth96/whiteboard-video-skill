@@ -1,0 +1,7 @@
+.env
+audio/
+narration.wav
+previous/
+previews/
+out/
+voice-samples/

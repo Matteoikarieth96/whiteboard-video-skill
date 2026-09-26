@@ -1,0 +1,6 @@
+{
+  "name": "whiteboard-video-engine",
+  "private": true,
+  "description": "Headless Chrome renderer for the whiteboard-video skill",
+  "dependencies": { "puppeteer-core": "^25.3.0" }
+}

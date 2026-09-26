@@ -1,0 +1,17 @@
+[
+  {"id": "intro", "lines": [
+    {"t": "This whiteboard video was written, voiced and drawn by Claude."}]},
+  {"id": "ask", "lines": [
+    {"t": "You tell it the topic, the audience, and how long it should be."}]},
+  {"id": "script", "lines": [
+    {"t": "It writes a script, scene by scene,"},
+    {"t": "and checks the facts before you approve it."}]},
+  {"id": "voice", "lines": [
+    {"t": "Then you pick a voice:"},
+    {"t": "free macOS voices, ElevenLabs, OpenAI, or your own recordings."}]},
+  {"id": "draw", "lines": [
+    {"t": "Finally, it draws every scene in sync with the voice,"},
+    {"t": "and renders an MP4."}]},
+  {"id": "outro", "lines": [
+    {"t": "It's open source. Grab it and make your own."}]}
+]

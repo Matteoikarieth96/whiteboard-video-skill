@@ -1,0 +1,38 @@
+[
+  {"id":"intro","lines":[
+    {"t":"Real-world assets on Ethereum, explained."}]},
+  {"id":"kinds","lines":[
+    {"t":"There are three ways to tokenize an asset."},
+    {"t":"One: the token is the asset itself, like BlackRock's BUIDL fund, whose shares are tokens on Ethereum.","say":"One: the token is the asset itself, like BlackRock's Build fund, whose shares are tokens on Ethereum."},
+    {"t":"Two: a custodian holds the real share, and the token is a claim on it, like Coinbase's stocks on Base."},
+    {"t":"Three: the token just tracks the price."},
+    {"t":"Robinhood's stock tokens are a debt security: backed one to one, but with no rights in the company."}]},
+  {"id":"why","lines":[
+    {"t":"Why bother?"},
+    {"t":"Settlement in seconds, not days."},
+    {"t":"Markets that never close."},
+    {"t":"Fractions of a share."},
+    {"t":"And a token any app can plug into."}]},
+  {"id":"numbers","lines":[
+    {"t":"Today, about $37 billion of real-world assets are on-chain, roughly three times more than a year ago.","say":"Today, about thirty-seven billion dollars of real-world assets are on-chain, roughly three times more than a year ago."},
+    {"t":"And almost half of it sits on Ethereum."}]},
+  {"id":"forecast","lines":[
+    {"t":"The big banks see trillions ahead:"},
+    {"t":"McKinsey up to $4 trillion by 2030, Citi $5.5 trillion, and Standard Chartered $30 trillion by 2034.","say":"McKinsey up to four trillion by 2030, Citi five and a half, and Standard Chartered thirty trillion by 2034."}]},
+  {"id":"defi","lines":[
+    {"t":"On-chain, a stock becomes a building block."},
+    {"t":"You can borrow dollars against tokenized Nvidia on Morpho."},
+    {"t":"On Robinhood Chain, meme coins even trade against stock tokens, and memes once made up almost 80% of its DEX volume.","say":"On Robinhood Chain, meme coins even trade against stock tokens, and memes once made up almost eighty percent of its dex volume."},
+    {"t":"Smart contracts rebalance whole portfolios, and AI agents are starting to trade for you.","say":"Smart contracts rebalance whole portfolios, and A.I. agents are starting to trade for you."}]},
+  {"id":"legal","lines":[
+    {"t":"The catch: tokenizing is a legal marathon, not a coding job."},
+    {"t":"It takes a legal wrapper, a prospectus, licences, a custodian, and KYC country by country.","say":"It takes a legal wrapper, a prospectus, licences, a custodian, and K.Y.C. country by country."},
+    {"t":"Dinari spent about a year with regulators before selling to Americans."}]},
+  {"id":"sec","lines":[
+    {"t":"On September 17, the SEC opened a five-year Innovation Exemption for on-chain stock trading.","say":"On September seventeenth, the S.E.C. opened a five-year Innovation Exemption for on-chain stock trading."},
+    {"t":"But only tokens with real shareholder rights qualify, and companies can veto third-party tokens of their stock."},
+    {"t":"Real-share models like Coinbase's win. Wrappers like Robinhood's don't qualify.","say":"Real-share models like Coinbase's win. [[slnc 150]] Wrappers like Robinhood's don't qualify."}]},
+  {"id":"outro","lines":[
+    {"t":"Same assets. New rails.","say":"Same assets. [[slnc 250]] New rails."},
+    {"t":"That's RWA on Ethereum.","say":"That's, R. W. A. on Ethereum."}]}
+]

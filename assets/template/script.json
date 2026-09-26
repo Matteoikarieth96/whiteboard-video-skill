@@ -1,0 +1,7 @@
+[
+  {"id": "intro", "lines": [
+    {"t": "Replace this with the first line of your voice-over."}]},
+  {"id": "point", "lines": [
+    {"t": "Each scene is one board. Each line is one spoken sentence and one caption."},
+    {"t": "Use \"say\" when the caption and the pronunciation differ, like $5 billion.", "say": "Use say when the caption and the pronunciation differ, like five billion dollars."}]}
+]

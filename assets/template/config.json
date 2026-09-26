@@ -1,0 +1,17 @@
+{
+  "name": "my-video",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "captions": true,
+  "pen": true,
+  "pan": 0.45,
+  "lead": 0.35,
+  "gap": 0.22,
+  "tail": 0.55,
+  "endHold": 0.8,
+  "palette": {
+    "ink": "#1f2328", "blue": "#5b6fe0", "gold": "#e0a106", "red": "#d6453b", "green": "#2f9a58", "gray": "#6b7079",
+    "paper": "#fbfbf8", "paperCenter": "#ffffff", "paperEdge": "#f1f0ea"
+  }
+}
