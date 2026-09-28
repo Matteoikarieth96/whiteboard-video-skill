@@ -10,9 +10,10 @@ window.SCENES = {
     P(wave(b.x + 20, b.x + b.width - 20, b.y + b.height + 10, 7, 110), A(0, .45), .35, { c: GOLD, w: 9 });
   },
   point(A, { W, H }) {
+    T('Every board has a title', W / 2, H * .14, Math.min(W, H) * .09, A(0, 0), .6); // keeps muted viewers oriented
     const v = H > W; // vertical layout stacks the two ideas instead of placing them side by side
     const [px, py] = v ? [W * .3, H * .3] : [W * .22, H * .5];
-    P(icon.person(px, py), A(0, 0), .8);
+    P(icon.person(px, py), A(0, .15), .8);
     P(icon.bubble(px + 280, py - 190, 300, 120), A(0, .35), .5, { fill: BLUE, fillOp: .12 });
     T('hello!', px + 280, py - 172, 64, A(0, .6), .4, { c: BLUE });
     const [tx, ty] = v ? [W / 2, H * .58] : [W * .68, H * .42];

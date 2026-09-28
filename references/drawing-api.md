@@ -53,6 +53,7 @@ Topic-specific logos: write a small helper at the top of `scenes.js` that return
 - Safe area: stay 60 px from the edges. Keep everything above `H - 150` so the captions never cover a drawing.
 - Text sizes on a 1920x1080 board: title 110 to 170, labels 56 to 70, small notes 42 to 50. Below 40 is unreadable on a phone.
 - Caveat at size S is roughly 0.45 x S px per character wide. Check long labels against the space you give them; `check` warns when text leaves the board, not when it overlaps a shape.
+- Every board gets a title at the top (size 90 to 110, around `y = 150`), drawn at the start of its first line. Without one the viewer loses track of where they are, especially with the sound off. The cover and a pure title card are the only exceptions, because the title is the whole board. Leave room for it: start the rest of the content around `y = 260`.
 - Give each scene one focal point. Three to six drawn elements per board is plenty.
 - Position with fractions of `W` and `H` if the same project may be rendered vertically.
 - Dashed lines are not available (the reveal animation uses the dash pattern). Use a lighter color or thinner stroke instead.

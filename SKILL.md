@@ -43,7 +43,7 @@ If the topic involves facts that change (markets, laws, products, prices), resea
 
 ## Step 2: write the script and get it approved
 
-Read `references/script-writing.md`. Deliver a table with one row per scene: scene name, estimated seconds, voice-over text, what gets drawn. Add a short "facts and sources" list under it, and a note on total duration.
+Read `references/script-writing.md`. Deliver a table with one row per scene: scene name, on-screen title, estimated seconds, voice-over text, what gets drawn. Add a short "facts and sources" list under it, and a note on total duration.
 
 Budget about 2.6 spoken words per second at a natural pace (about 150 per minute). A 60-second video holds roughly 140 words once you allow for pauses. If the requested content does not fit the requested length, say so and offer both a full version and a cut.
 
@@ -92,7 +92,7 @@ node scripts/render.js <project> sheet      # the same PNGs plus previews/sheet.
 node scripts/render.js <project> full       # all frames + audio -> <project>/out/<name>.mp4
 ```
 
-Look at `previews/sheet.png` (or every preview image) before the full render. Check that nothing overlaps, nothing touches the edges or the caption strip, text fits inside its shapes, and each scene reads at a glance. Fix every `WARN` line: an item that ends after the scene cut will be chopped by the slide transition, and text that "runs off the board" is clipped.
+Look at `previews/sheet.png` (or every preview image) before the full render. Check that every board has a title at the top, nothing overlaps, nothing touches the edges or the caption strip, text fits inside its shapes, and each scene reads at a glance. Fix every `WARN` line: an item that ends after the scene cut will be chopped by the slide transition, and text that "runs off the board" is clipped.
 
 After the full render, check the duration with ffprobe and grab one or two frames from the MP4 to confirm audio and drawings are in sync.
 

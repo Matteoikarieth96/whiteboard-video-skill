@@ -3,6 +3,7 @@
 ## Shape
 
 - **One idea per scene.** A scene is one board. If you need to erase half the board, it is two scenes.
+- **Every scene has a title.** Give each board a short on-screen title (two to five words) that names its idea, and list it in the approval table. Viewers who look away or watch muted use the titles to follow the story.
 - **One sentence per line.** Each line in `script.json` is one spoken sentence and one caption. Captions over about 90 characters wrap to two lines; that is fine, over three lines is not.
 - **Draw what is said, when it is said.** Plan each drawing against a specific line and a moment inside it ("the coin appears when she says *token*").
 - **Open with a hook, close with a takeaway.** First scene: the question or the promise. Last scene: one short line the viewer can repeat.
@@ -35,4 +36,4 @@ macOS voices at rate 185 to 200 speak slightly faster than this; ElevenLabs and 
 
 ## Presenting the script for approval
 
-Use a table: scene, seconds, voice-over, drawing. Then the facts list, then the total word count and estimated duration. Keep drawing descriptions concrete enough that the user can picture the board.
+Use a table: scene, board title, seconds, voice-over, drawing. Then the facts list, then the total word count and estimated duration. Keep drawing descriptions concrete enough that the user can picture the board.
