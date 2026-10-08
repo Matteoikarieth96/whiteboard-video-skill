@@ -6,6 +6,7 @@ Usage:
   make_audio.py <project> --list-voices       list usable voices (macOS premium/enhanced voices, ElevenLabs voices if a key is set)
   make_audio.py <project> --samples "text" --voices "say:Samantha:185" "say:Ava (Premium):180" "elevenlabs:<voice_id>"
                                               render the same sentence with several voices into <project>/voice-samples/
+                                              (--instructions "Warm, clear explainer tone." applies to openai voices)
 
 voice.json examples:
   {"engine": "say", "voice": "Ava (Premium)", "rate": 185}
@@ -16,7 +17,7 @@ voice.json examples:
 API keys are read from the environment or from <project>/.env (ELEVENLABS_API_KEY, OPENAI_API_KEY).
 Keys are never written anywhere else and never printed.
 """
-import argparse, array, json, os, subprocess, sys, urllib.request, urllib.error, wave
+import argparse, array, json, os, ssl, subprocess, sys, urllib.request, urllib.error, wave
 
 SR = 48000
 
@@ -33,14 +34,19 @@ def load_env(project):
     return env
 
 
-def http_post(url, headers, body):
+def http_post(url, headers, body, ctx=None):
     req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=120) as r:
+        with urllib.request.urlopen(req, timeout=120, context=ctx) as r:
             return r.read()
     except urllib.error.HTTPError as e:
         msg = e.read().decode(errors="replace")[:400]
         sys.exit(f"TTS request failed ({e.code}): {msg}")
+    except urllib.error.URLError as e:
+        # python.org builds on macOS ship without CA certificates: retry with the system bundle
+        if ctx is None and "CERTIFICATE_VERIFY_FAILED" in str(e) and os.path.exists("/etc/ssl/cert.pem"):
+            return http_post(url, headers, body, ssl.create_default_context(cafile="/etc/ssl/cert.pem"))
+        raise
 
 
 def synth(spec, text, out_base, env):
@@ -76,8 +82,31 @@ def synth(spec, text, out_base, env):
     sys.exit(f"unknown engine {eng}")
 
 
-def to_raw(src, raw):
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-ar", str(SR), "-ac", "1", "-f", "s16le", raw], check=True)
+EXT = {"say": ".aiff", "elevenlabs": ".mp3", "openai": ".wav"}
+SYNTH_KEYS = ("engine", "voice", "voice_id", "model", "rate", "instructions", "voice_settings")
+
+
+def cached_synth(spec, text, out_base, env):
+    """Reuse the previous clip when the spoken text and voice settings are unchanged (saves paid API calls)."""
+    key = json.dumps({"text": text, **{k: spec[k] for k in SYNTH_KEYS if k in spec}}, sort_keys=True, ensure_ascii=False)
+    path, kfile = out_base + EXT.get(spec.get("engine", "say"), ".wav"), out_base + ".key"
+    if os.path.exists(path) and os.path.exists(kfile) and open(kfile).read() == key:
+        return path
+    path = synth(spec, text, out_base, env)
+    open(kfile, "w").write(key)
+    return path
+
+
+def to_raw(src, raw, trim=False, tempo=1.0):
+    """Convert a clip to mono 48 kHz raw PCM; optionally trim edge silence and change speed (pitch kept)."""
+    af = []
+    if trim:
+        edge = "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.05"
+        af += [edge, "areverse", edge, "areverse"]
+    if abs(tempo - 1.0) > 1e-3:
+        af.append(f"atempo={tempo}")
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", src] + (["-af", ",".join(af)] if af else []) + ["-ar", str(SR), "-ac", "1", "-f", "s16le", raw]
+    subprocess.run(cmd, check=True)
     return os.path.getsize(raw) / 2 / SR
 
 
@@ -104,8 +133,8 @@ def build(project):
         t += lead
         for li, ln in enumerate(sc["lines"]):
             base = os.path.join(audio, f"{sc['id']}_{li}")
-            src = find_recording(audio, sc["id"], li) if spec.get("engine") == "files" else synth(spec, ln.get("say", ln["t"]), base + ".tts", env)
-            d = to_raw(src, base + ".raw")
+            src = find_recording(audio, sc["id"], li) if spec.get("engine") == "files" else cached_synth(spec, ln.get("say", ln["t"]), base + ".tts", env)
+            d = to_raw(src, base + ".raw", spec.get("trim", spec.get("engine") in ("openai", "elevenlabs")), spec.get("tempo", 1.0))
             lines.append({"text": ln["t"], "start": round(t, 3), "end": round(t + d, 3)})
             clips.append((t, base + ".raw"))
             t += d + (gap if li < len(sc["lines"]) - 1 else 0)
@@ -137,7 +166,7 @@ def parse_voice(v):
     sys.exit(f"bad voice spec {v}")
 
 
-def samples(project, text, voices):
+def samples(project, text, voices, instructions=None):
     env = load_env(project)
     out = os.path.join(project, "voice-samples")
     os.makedirs(out, exist_ok=True)
@@ -145,6 +174,8 @@ def samples(project, text, voices):
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", f"anullsrc=r={SR}:cl=mono", "-t", "1.2", gap], check=True)
     for i, v in enumerate(voices, 1):
         spec = parse_voice(v)
+        if instructions and spec["engine"] == "openai":
+            spec["instructions"] = instructions
         name = f"{i:02d}-" + "".join(c for c in v if c.isalnum() or c in "-_")[:40]
         src = synth(spec, text, os.path.join(out, name), env)
         wav = os.path.join(out, name + ".norm.wav")
@@ -184,12 +215,13 @@ if __name__ == "__main__":
     ap.add_argument("project")
     ap.add_argument("--samples")
     ap.add_argument("--voices", nargs="+")
+    ap.add_argument("--instructions", help="tone instruction applied to openai sample voices, as in voice.json")
     ap.add_argument("--list-voices", action="store_true")
     a = ap.parse_args()
     proj = os.path.abspath(a.project)
     if a.list_voices:
         list_voices(proj)
     elif a.samples:
-        samples(proj, a.samples, a.voices or ["say:Samantha:185"])
+        samples(proj, a.samples, a.voices or ["say:Samantha:185"], a.instructions)
     else:
         build(proj)
