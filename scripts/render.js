@@ -37,7 +37,7 @@ function findChrome() {
 (async () => {
   const browser = await puppeteer.launch({
     executablePath: findChrome(), headless: "new",
-    args: ["--no-first-run", "--hide-scrollbars", "--force-device-scale-factor=1", "--allow-file-access-from-files"],
+    args: ["--use-mock-keychain", "--password-store=basic", "--no-first-run", "--hide-scrollbars", "--force-device-scale-factor=1", "--allow-file-access-from-files"],
   });
   const page = await browser.newPage();
   const errors = [];
