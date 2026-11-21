@@ -1,6 +1,6 @@
 ---
 name: whiteboard-video
-description: Make hand-drawn whiteboard explainer videos (animated marker drawings, voice-over, burned-in captions, MP4) on any topic, rendered locally. Use when the user wants an explainer video, a whiteboard or "drawn" animation, or to turn a script, article, slide deck or topic into a narrated video, e.g. "video esplicativo", "explainer video". Not for cartoon shorts (cartoon-shorts) or launch videos (launch-video).
+description: Make hand-drawn whiteboard explainer videos (animated marker drawings, voice-over, burned-in captions, MP4), rendered locally. Use when the user wants an explainer video, a whiteboard or "drawn" animation, or to turn a script, article, slide deck or topic into a narrated video, e.g. "video esplicativo", "explainer video". Not for cartoon shorts (cartoon-shorts) or launch videos (launch-video).
 ---
 
 # Whiteboard video
