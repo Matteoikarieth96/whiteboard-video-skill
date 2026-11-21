@@ -5,13 +5,14 @@
   node render.js <project> check              build the scenes and print timing/layout warnings only
   node render.js <project> preview [t ...]    PNG stills into <project>/previews/ (no times = the last moment of every scene)
   node render.js <project> sheet              same default stills, plus one contact sheet <project>/previews/sheet.png to review every scene at once
-  node render.js <project> full               every frame, then mux with narration.wav into <project>/out/<name>.mp4
+  node render.js <project> full               every frame, encoded with narration.wav into <project>/out/<name>.mp4
+                                              (master quality: lossless PNG frames, x264 CRF 10, BT.709, AAC 320k)
 
   Needs: timeline.json + narration.wav (from make_audio.py), scenes.js, optional config.json.
   Chrome: set CHROME_PATH if it is not in a standard location.
 */
-const fs = require("fs"), path = require("path"), os = require("os");
-const { execFileSync } = require("child_process");
+const fs = require("fs"), path = require("path");
+const { execFileSync, spawn } = require("child_process");
 const puppeteer = require("puppeteer-core");
 
 const [, , projArg, mode = "check", ...rest] = process.argv;
@@ -76,23 +77,36 @@ function findChrome() {
       console.log("sheet", sheet);
     }
   } else if (mode === "full") {
-    const frames = path.join(os.tmpdir(), `wbv-frames-${cfg.name}-${process.pid}`);
-    fs.mkdirSync(frames, { recursive: true });
-    const n = Math.ceil(tl.total * cfg.fps), t0 = Date.now();
-    for (let i = 0; i < n; i++) {
-      await page.evaluate(t => window.renderAt(t), i / cfg.fps);
-      await page.screenshot({ path: path.join(frames, `f${String(i).padStart(5, "0")}.jpg`), type: "jpeg", quality: 92 });
-      if (i % 300 === 0) console.log(`frame ${i}/${n}  ${((i + 1) / ((Date.now() - t0) / 1000)).toFixed(1)} fps`);
-    }
-    await browser.close();
     const outDir = path.join(project, "out");
     fs.mkdirSync(outDir, { recursive: true });
     const out = path.join(outDir, `${cfg.name}.mp4`);
-    execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-framerate", String(cfg.fps), "-i", path.join(frames, "f%05d.jpg"),
-      "-i", path.join(project, "narration.wav"), "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p",
-      "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-shortest",
-      "-movflags", "+faststart", out], { stdio: "inherit" });
-    fs.rmSync(frames, { recursive: true, force: true });
+    // Master quality: lossless PNG frames (JPEG blurred text and marker edges) piped straight into ffmpeg, so no
+    // frame is ever written to disk; x264 tuned for flat drawings at a rich bitrate (platforms re-encode every
+    // upload, a richer source loses less); BT.709 matrix and tags so colours match on every player; AAC 320k.
+    const ff = spawn("ffmpeg", ["-y", "-loglevel", "error", "-f", "image2pipe", "-framerate", String(cfg.fps), "-i", "-",
+      "-i", path.join(project, "narration.wav"),
+      "-vf", "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=tv",
+      "-c:v", "libx264", "-preset", "slow", "-tune", "animation", "-crf", "10", "-maxrate", "20M", "-bufsize", "40M",
+      "-pix_fmt", "yuv420p", "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-color_range", "tv",
+      "-c:a", "aac", "-b:a", "320k", "-ar", "48000", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-shortest",
+      "-movflags", "+faststart", out], { stdio: ["pipe", "inherit", "inherit"] });
+    let ffExit = null;
+    const ffDone = new Promise(resolve => { ff.on("error", () => resolve(-1)); ff.on("close", resolve); }).then(c => (ffExit = c ?? -1));
+    ff.stdin.on("error", () => {});   // ffmpeg quit early: its exit code below reports it
+    const n = Math.ceil(tl.total * cfg.fps), t0 = Date.now();
+    try {
+      for (let i = 0; i < n && ffExit === null; i++) {
+        await page.evaluate(t => window.renderAt(t), i / cfg.fps);
+        const png = await page.screenshot({ type: "png", optimizeForSpeed: true });
+        if (!ff.stdin.write(png)) await Promise.race([new Promise(r => ff.stdin.once("drain", r)), ffDone]);
+        if (i % 300 === 0) console.log(`frame ${i}/${n}  ${((i + 1) / ((Date.now() - t0) / 1000)).toFixed(1)} fps`);
+      }
+    } finally {
+      await browser.close();
+      ff.stdin.end();
+    }
+    const code = await ffDone;
+    if (code !== 0) { console.error(`ffmpeg failed (exit ${code}): ${out} is missing or incomplete`); process.exit(1); }
     const dur = execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", out]).toString().trim();
     console.log(`video ${out}  ${Number(dur).toFixed(2)}s  rendered in ${((Date.now() - t0) / 1000).toFixed(0)}s`);
     return;

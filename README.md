@@ -13,7 +13,7 @@ A Claude Code skill that turns any topic into a hand-drawn whiteboard explainer 
 3. **Lets you pick a voice.** It renders the same sentence with a few voices so you choose by ear: free macOS Premium voices, ElevenLabs, OpenAI TTS, or your own recordings.
 4. **Draws and renders.** Hand-drawn SVG scenes timed to each spoken line, previews for review, then a 1080p MP4 in 16:9 or 9:16.
 
-Everything runs locally: headless Chrome draws the frames, ffmpeg makes the video.
+Everything runs locally: headless Chrome draws the frames, ffmpeg makes the video. The MP4 is an upload master: lossless PNG frames, x264 CRF 10, BT.709 colours, AAC 320k.
 
 ## Install
 
@@ -72,7 +72,7 @@ ffmpeg -i my-video/out/my-video.mp4 -t 34 \
 - `script.json` lists scenes and spoken lines. Each line becomes one caption.
 - `make_audio.py` voices every line separately and records exactly when it starts and ends.
 - `scenes.js` draws each scene with a small API (`T` for text, `P` for paths, plus lines, arrows, circles, icons) and times every stroke against those lines, for example "draw the coin halfway through the second sentence".
-- `render.js` checks timing and layout, makes previews, renders every frame deterministically and muxes the audio.
+- `render.js` checks timing and layout, makes previews, renders every frame deterministically as a lossless PNG and pipes it to ffmpeg, which encodes video and audio in one pass (`-preset slow -tune animation -crf 10 -maxrate 20M`, `yuv420p` tagged BT.709, AAC 320k). No frame files are written to disk.
 
 See `references/drawing-api.md` for the full drawing API and `examples/` for two complete videos.
 

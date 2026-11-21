@@ -1,11 +1,13 @@
 ---
 name: whiteboard-video
-description: Make hand-drawn whiteboard explainer videos (animated marker drawings, voice-over, burned-in captions, MP4) on any topic. Use this whenever the user wants an explainer video, a whiteboard or "drawn" animation, an animated explainer for a talk, a short video for X/LinkedIn/YouTube that explains a concept, or asks to turn a script, article, slide deck or topic into a narrated video, even if they don't say "whiteboard". It interviews the user for context, writes and fact-checks a scene-by-scene script for approval, offers voice-over options with audio samples (free macOS voices, ElevenLabs, OpenAI, or the user's own recordings), then draws, voices and renders the video locally with headless Chrome and ffmpeg.
+description: Make hand-drawn whiteboard explainer videos (animated marker drawings, voice-over, burned-in captions, MP4) on any topic, rendered locally. Use when the user wants an explainer video, a whiteboard or "drawn" animation, or to turn a script, article, slide deck or topic into a narrated video, e.g. "video esplicativo", "explainer video". Not for cartoon shorts (cartoon-shorts) or launch videos (launch-video).
 ---
 
 # Whiteboard video
 
 Turn a topic into a narrated whiteboard video: a marker draws each scene in sync with the voice, the board slides to the next scene, captions run at the bottom, and the result is an MP4.
+
+Everything renders locally: headless Chrome draws the frames and ffmpeg encodes the video. It suits talks, YouTube and short social posts (X, LinkedIn, Reels), also when the user asks for an animated explainer without saying "whiteboard".
 
 Paths below are relative to this skill's folder. The engine lives in `scripts/`, a starter project in `assets/template/`, two complete examples in `examples/`.
 
@@ -94,11 +96,13 @@ node scripts/render.js <project> full       # all frames + audio -> <project>/ou
 
 Look at `previews/sheet.png` (or every preview image) before the full render. Check that every board has a title at the top, nothing overlaps, nothing touches the edges or the caption strip, text fits inside its shapes, and each scene reads at a glance. Fix every `WARN` line: an item that ends after the scene cut will be chopped by the slide transition, and text that "runs off the board" is clipped.
 
+The full render is an upload master: lossless PNG frames piped straight into ffmpeg (no frame files on disk), x264 `-preset slow -tune animation -crf 10` capped at 20 Mbit/s, `yuv420p` with BT.709 matrix and tags, AAC at 320k. Platforms re-encode every upload, so a richer source loses less. Do not lower these settings to save time.
+
 After the full render, check the duration with ffprobe and grab one or two frames from the MP4 to confirm audio and drawings are in sync.
 
 ## Step 6: deliver
 
-Send the MP4. Tell the user its length, the voice used, and anything you assumed. Offer the cheap iterations: change a line (re-run make_audio and render), change a voice (re-run make_audio and render), change a drawing (edit scenes.js and render). A 2-minute video renders in about 3 minutes.
+Send the MP4. Tell the user its length, the voice used, and anything you assumed. Offer the cheap iterations: change a line (re-run make_audio and render), change a voice (re-run make_audio and render), change a drawing (edit scenes.js and render). A 2-minute video renders in about 5 minutes and weighs roughly 15 MB (more for dense boards).
 
 ## Examples
 
